@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "start:client": "parcel index.html",
+    "start:server": "json-server -w db.json",
+    "start": "concurrently -n client,server npm:start:client npm:start:server -c blue.bold,green.bold"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.5"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "concurrently": "^5.1.0"
+  }
+}

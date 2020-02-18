@@ -1,0 +1,94 @@
+import { Attributes } from './Attributes';
+import { Eventing } from './Eventing';
+import { ApiSync } from './ApiSync';
+import { AxiosResponse } from 'axios';
+
+export interface UserProps {
+  id?: number
+  name?: string
+  age?: number
+}
+
+export class User {
+  public events: Eventing = new Eventing();
+  public sync: ApiSync<UserProps> = new ApiSync<UserProps>('http://localhost:3000/users');
+
+  // public attributes: Attributes<UserProps> = new Attributes<UserProps>();
+  public attributes: Attributes<UserProps>;
+
+  constructor(attrs: UserProps) {
+    this.attributes = new Attributes<UserProps>(attrs);
+  }
+
+  get get() {
+    // this.attributes.get 최초 생성시 Attributes 클래스에
+    // this가 바인딩 되어 있으나 get 호출과 함께 this 값이 User로 바뀜
+    // To Fix... 화살표 함수 사용 or bind로 다시 바인딩
+    // return this.attributes.get.bind(this.attributes);
+
+    // 리턴됨과 함께 this 값이 현재 클래스에 바인딩됨
+    // const apple = {
+    //   name: 'apple',
+    //   get get() {
+    //     return banana.print;
+    //   },
+    //   call() {
+    //     banana.print();
+    //   },
+    //   print() {
+    //     console.log(this.name);
+    //   }
+    // };
+
+    // const banana = {
+    //   name: 'banana',
+    //   print() {
+    //     console.log(this.name);
+    //   }
+    // };
+
+    // apple.print(); // apple, this === apple
+    // apple.get(); // apple, this === apple
+    // apple.call(); // banana this === banana
+
+    return this.attributes.get;
+  }
+
+  set(update: UserProps): void {
+    this.attributes.set(update);
+    this.events.trigger('change');
+  }
+
+  get on()  {
+    return this.events.on;
+  }
+
+  get trigger() {
+    return this.events.trigger;
+  }
+
+  fetch(): void {
+    // same as const id = this.get('id');
+    const id = this.attributes.get('id');
+
+    if (typeof id !== 'number') {
+      throw new Error('Cannot fetch without an id');
+    }
+
+    this.sync.fetch(id).then((res: AxiosResponse): void => {
+      this.set(res.data); // should trigger change event
+    }).catch(() => {
+      this.trigger('error');
+    });
+  }
+
+  save(): void {
+    this.sync.save(this.attributes.getAll())
+      .then((res: AxiosResponse): void => {
+        this.trigger('save');
+      })
+      .catch(() => {
+        this.trigger('error');
+      });
+  }
+}
